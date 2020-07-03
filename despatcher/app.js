@@ -18,4 +18,7 @@ app.use(function (err, req, res, next) {
 })
 
 port = process.env.PORT || 3000
+console.log("RMQ CONNECTION @", process.env.RMQ_CXN)
+console.log("MDB CONNECTION @", process.env.MDB_CXN)
+
 app.listen(port, () => console.log(`Despatcher listening at ${port}`))
