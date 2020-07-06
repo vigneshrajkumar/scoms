@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/streadway/amqp"
+	"gopkg.in/matryer/try.v1"
 )
 
 // Email represents an email to be sent
@@ -15,21 +17,40 @@ type Email struct {
 }
 
 func main() {
+	log.SetPrefix("email-wkr ")
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("email worker running")
 
 	connectionString := os.Getenv("RMQ_CXN")
 	if connectionString == "" {
-		connectionString = "amqp://guest:guest@localhost:5672/"
+		log.Println("RMQ Connection unset. Stopping worker now..")
+		os.Exit(1)
 	}
 	log.Println("connecting rabbitmq at", connectionString)
 
-	conn, err := amqp.Dial(connectionString)
+	var ampqConnection *amqp.Connection
+	var err error
+	err = try.Do(func(attempt int) (bool, error) {
+		ampqConnection, err = amqp.Dial(connectionString)
+		if err != nil {
+			log.Println(err)
+			log.Println("could not connect to rmq @ " + connectionString + " retrying...")
+			time.Sleep(5 * time.Second)
+		}
+		return attempt < 5, err
+	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln("unable to connect to RMQ in multiple retries:", err)
 	}
-	defer conn.Close()
 
-	ch, err := conn.Channel()
+	// conn, err := amqp.Dial(connectionString)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer conn.Close()
+	defer ampqConnection.Close()
+
+	ch, err := ampqConnection.Channel()
 	if err != nil {
 		log.Fatal(err)
 	}

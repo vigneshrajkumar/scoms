@@ -1,0 +1,54 @@
+version: "3.3"
+services: 
+    despatcher:
+        build: ./despatcher
+        image: scoms-despatcher
+        ports: 
+            - "8888:8080"
+        environment:
+            - PORT=8080
+            - RMQ_CXN=amqp://guest:guest@scoms-rmq:5672
+            - MDB_CXN=mongodb://scoms-mdb:27017
+        networks: 
+            - comnet
+        depends_on: 
+            - scoms-rmq
+            - scoms-mdb
+    
+    scoms-rmq:
+        image: rabbitmq:3.8.5
+        networks: 
+            - comnet
+
+    scoms-mdb:
+        image: mongo:3.6.18-xenial
+        networks: 
+            - comnet
+        volumes:
+            - scoms-mdb-data:/data/db
+
+    email-worker:
+        build: ./email-worker
+        image: scoms-email-wkr
+        environment:
+            - RMQ_CXN=amqp://guest:guest@scoms-rmq:5672
+        networks: 
+            - comnet
+        depends_on: 
+            - scoms-rmq
+
+    sms-worker:
+        build: ./sms-worker
+        image: scoms-sms-wkr
+        environment:
+            - RMQ_CXN=amqp://guest:guest@scoms-rmq:5672
+        networks: 
+            - comnet
+        depends_on: 
+            - scoms-rmq
+            
+networks: 
+    comnet:
+volumes:
+    scoms-mdb-data:
+    
