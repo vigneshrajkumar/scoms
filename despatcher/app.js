@@ -4,12 +4,20 @@ var logger = require('morgan');
 var indexRouter = require('./routes/index');
 var app = express();
 
+const mongoose = require('mongoose');
+mongoose.connect(process.env.MDB_CXN, { useNewUrlParser: true, useUnifiedTopology: true }), (err) => {
+    if (err) {
+        console.error(err);
+        process.exit(1)
+    }
+};
+
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'client/build')));
 
-app.use('/', indexRouter);
+app.use('/api', indexRouter);
 
 // Error Handler
 app.use(function(err, req, res, next) {
